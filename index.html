@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="En">
+<head>
+    <title>Intern Kart CNP</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.css"
+          type="text/css"/>
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css"/>
+
+    <script src="https://unpkg.com/leaflet-gesture-handling"></script>
+    <script defer src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.js"></script>
+    <style>
+        body, h1, p, textarea, button {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+        }
+
+        main {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: stretch;
+            padding: 20px;
+            flex: 1;
+            max-width: none;
+        }
+
+        #mapSection {
+            max-width: 100vw;
+            max-height: 80vh;
+        }
+
+        #controlSection {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #mainContent {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+
+        #map {
+            width: 900px;
+            height: 600px;
+            z-index: 0;
+        }
+
+        @media (max-width: 780px) {
+            #maincontent #map {
+                width: 100%; /* Adjust for smaller screens if needed */
+                height: 500px; /* Adjust the height accordingly */
+            }
+        }
+
+        #previewMap {
+            height: 50vh;
+        }
+
+        figcaption {
+            padding: 10px;
+            color: #555;
+            word-wrap: break-word;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        #mapText {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            max-height: 200px;
+            min-height: 100px;
+            resize: vertical;
+            overflow: hidden scroll;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a050;
+        }
+
+        #copyHtmlBtnPreview {
+            background-color: #5588ff;
+        }
+
+        #copyHtmlBtnPreview:hover {
+            background-color: #084ccf;
+        }
+
+
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+        }
+
+        .horizontal-line::before {
+            content: "";
+            display: block;
+            border-top: 1px solid black;
+            margin: 10px 0;
+        }
+
+        #pMap {
+            max-width: 100%;
+            width: 780px;
+            min-height: 500px;
+        }
+
+    </style>
+</head>
+<body>
+<main>
+    <div>
+        <section id="mapSection">
+            <div id="map"></div>
+        </section>
+        <div id="mainContent">
+            <figure>
+                <figcaption id="mapCaption" style="display:block;">En kort forklarende tekst til hva man ser på kartet.
+                </figcaption>
+            </figure>
+            <div>
+                <section id="kontrollSeksjon">
+                    <div class="horizontal-line"></div>
+                    <label for="mapText">↓Endre karttekst / Bilde Tekst ↓</label>
+                    <textarea placeholder="En kort forklarende tekst til hva man ser på kartet." id="mapText" rows="5"
+                              cols="33"></textarea>
+                    <button id="previewModalMapCode">Forhåndsvis html</button>
+                    <button id="copyHtmlBtn">Kopier html</button>
+                </section>
+                <section id="Forhåndsvisning">
+                    <dialog id="previewModal" class="modal">
+                        <button id="previewModalCloseBtn">Lukk forhåndsvisning</button>
+                        <button id="btnMap">Kart</button>
+                        <button id="btnCode">Kode</button>
+                        <button id="copyHtmlBtnPreview">Kopier Html</button>
+                        <div id="mainPreviewContent">
+                            <div id="previewMap"></div>
+                            <pre id="previewCode"></pre>
+                        </div>
+                    </dialog>
+                </section>
+                <section id="instruktionsSeksjon">
+                    <p style="padding-top: 20px;">
+                    <h1>Slik gjør du det:</h1>
+                    <table>
+                        <ol>
+                            <li>Velg ønsket karttype fra nedtrekksmenyen oppe i høyre hjørne</li>
+                            <li>Velg ønsket kartutsnitt/zoom-nivå</li>
+                            <li>
+                                Velg markør på verktøyslisten på venstre side av kartet
+                                <ul>
+                                    <li>Tips: Hold musepeker over ikonene for mer info om verktøyet.</li>
+                                </ul>
+                            </li>
+                            <li>Følg instruksjonene som vises ved markøren avhengig av verktøyet</li>
+                            <li>Skriv en kort, forklarende tekst i tekstfeltet</li>
+                            <li>Trykk «Forhåndsvis HTML» for å se over kartet</li>
+                            <li>Trykk på «Kopier html»</li>
+                            <li>Logg inn i Schibsted Multimedia Tool</li>
+                            <li>Lim inn koden under «HTML code» (Ctrl+V)</li>
+                            <li>Skriv inn passende «Title» og «Author»</li>
+                            <li>I Bench (CNP): Trekk kartelementet fra Enrichments og rett inn i artikkelen</li>
+                        </ol>
+                    </table>
+                </section>
+            </div>
+        </div>
+    </div>
+</main>
+<script>
+
+    let model = {
+        inputs: {
+            map_text: ""
+        },
+
+        mapState: {
+            PosLat: 69.6492,
+            PosLng: 18.9553,
+            Zoom: 11,
+            MapLayers: {
+                topoLayer: {
+                    // "https://www.kartverket.no/til-lands/kart/bygge-inn-kart-pa-nett" link til hvor kartet er funnet.
+                    url: 'https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/{z}/{y}/{x}.png',
+                    options: {
+                        maxZoom: 19,
+                        detectRetina: true,
+                        attribution: '© OpenStreetMap contributors'
+                    },
+                    isBaseLayer: true,
+                    name: 'Statkart topografisk',
+                    default: true
+                },
+                osmLayer: {
+                    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    options: {
+                        maxZoom: 19.3,
+                        detectRetina: true,
+                        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+                    },
+                    isBaseLayer: true,
+                    name: 'OpenStreetMap',
+                    default: false
+                }
+            },
+            activeLayer: {
+                url: '',
+                options: {}
+            },
+            templateMapText: "",
+            featureCollections: {
+                type: 'FeatureCollection',
+                features: []
+            },
+        },
+        liveMap: {
+            map: {},
+            activeLayer: {}
+        },
+
+        previewMap: {
+            map: {},
+            activeLayer: {}
+        },
+    }
+
+    function initializeMap() {
+        model.liveMap.map = L.map('map').setView([model.mapState.PosLat, model.mapState.PosLng], model.mapState.Zoom);
+
+
+        const baseLayers = {};
+        const overlays = {};
+
+        Object.keys(model.mapState.MapLayers).forEach(layerKey => {
+            const layerConfig = model.mapState.MapLayers[layerKey];
+            const tileLayer = L.tileLayer(layerConfig.url, layerConfig.options);
+
+            if (layerConfig.isBaseLayer) {
+                baseLayers[layerConfig.name] = tileLayer;
+                if (layerConfig.default) {
+                    tileLayer.addTo(model.liveMap.map);
+                    model.mapState.activeLayer = layerConfig;
+                }
+            } else {
+                overlays[layerConfig.name] = tileLayer;
+            }
+
+        });
+        model.liveMap.map.pm.setPathOptions({
+            color: 'red', fillColor: 'red', fillOpacity: 0.5,
+        });
+
+
+        model.liveMap.map.pm.setLang("no");
+
+        model.liveMap.map.pm.addControls({
+            position: "topleft", drawCircleMarker: false, cutPolygon: false, drawText: false
+        });
+
+        L.control.layers(baseLayers).addTo(model.liveMap.map);
+        return model.liveMap.map
+    }
+
+    function setModelValues() {
+        model.mapState.PosLat = model.liveMap.map.getCenter().lat;
+        model.mapState.PosLng = model.liveMap.map.getCenter().lng;
+        model.mapState.zoom = model.liveMap.map.getZoom();
+    }
+
+    function addPoint(feature) {
+        if (feature.properties.text) {
+            return `
+            L.marker([${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]}], {
+                textMarker: true,
+                text: \`${feature.properties.text.text}\`,
+            }).addTo(map);`;
+        }
+        if (!isNaN(feature.properties.radius)) {
+            return `
+                L.circle(
+                    [${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]}], {
+                    color: 'red',
+                    radius: ${feature.properties.radius}
+                }).addTo(map);`;
+        }
+        return `
+                L.marker(
+                    [${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]}],{
+                    color: 'red'
+                }).addTo(map);`;
+    }
+
+    function addLineString(feature) {
+        let stringBuilder = [];
+        for (let i = 0; i < feature.geometry.coordinates.length; i++) {
+            stringBuilder.push(`[${feature.geometry.coordinates[i][1]}, ${feature.geometry.coordinates[i][0]}]`)
+        }
+        return `
+                L.polyline([${stringBuilder.join(",")}], {color: 'red'}).addTo(map);`;
+    }
+
+    function addPolygon(feature) {
+        let stringBuilder = [];
+        for (let i = 0; i < feature.geometry.coordinates[0].length; i++) {
+            stringBuilder.push(`[${feature.geometry.coordinates[0][i][1]}, ${feature.geometry.coordinates[0][i][0]}]`)
+        }
+        return `
+                L.polygon([${stringBuilder.join(",")}], {color: 'red'}).addTo(map);`;
+    }
+
+    function generateVectorLayers() {
+        let stringBuilder = [];
+        model.mapState.featureCollections.features.forEach(feature => {
+            if (feature.geometry.type === 'Point') {
+                stringBuilder.push(addPoint(feature));
+            }
+            if (feature.geometry.type === 'LineString') {
+                stringBuilder.push(addLineString(feature));
+            }
+            if (feature.geometry.type === 'Polygon') {
+                stringBuilder.push(addPolygon(feature));
+            }
+        })
+        return stringBuilder.join("\n");
+    }
+
+
+    function setHtmlTemplate() {
+        setModelValues()
+        return `
+<!DOCTYPE html>
+<html lang="en">
+<head title="Webpack App">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""><` + `/script>
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css"/>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.js"><` + `/script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-defaulticon-compatibility@0.1.2/dist/leaflet-defaulticon-compatibility.css" />
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.js"></` + `script>
+
+    <link rel="stylesheet"
+        href="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.css"
+        type="text/css"/>
+    <script src="https://unpkg.com/leaflet-gesture-handling"><` + `/script>
+
+    <title>Intern Kart</title>
+</head>
+<body>
+    <div id="map" style="max-width:100%; width: 780px; height: 500px; display:block;"></div>
+       ${model.mapState.templateMapText !== "" ? `
+                <div id="figcap">
+                    <figure>
+                        <figcaption style="display:block;" rows="5" cols="33">${model.mapState.templateMapText}</figcaption>
+                    </figure>
+                </div>
+                ` : ''}
+    <script>
+        L.Icon.Default.imagePath = 'https://unpkg.com/leaflet@1.9.4/dist/images/';
+
+        let map = L.map("map", {
+            pmIgnore: false,
+            center: [${model.mapState.PosLat}, ${model.mapState.PosLng}],
+            zoom: ${model.liveMap.map.getZoom()},
+            gestureHandling: true
+        });
+
+        L.tileLayer(
+            "${model.mapState.activeLayer.url}",
+            ${JSON.stringify(model.mapState.activeLayer.options)})
+        .addTo(map);
+
+        ${generateVectorLayers()}
+
+    <` + `/script>
+</body>
+</html>
+    `;
+    }
+
+    function copyHTML() {
+        let copiedHtml = setHtmlTemplate();
+
+        navigator.clipboard.writeText(copiedHtml)
+            .then(() => {
+                alert('HTML code copied to clipboard!')
+            })
+            .catch((error) => {
+                console.error('Unable to copy HTML to clipboard', error);
+            })
+    }
+
+    function updateFigCaption() {
+        let newMapText = document.getElementById('mapText').value;
+        model.inputs.map_text = newMapText;
+        model.mapState.templateMapText = model.inputs.map_text;
+
+        document.getElementById('mapCaption').textContent = newMapText;
+    }
+
+    function showPreviewModalMap() {
+        let previewMapContainer = document.getElementById('previewMap');
+        let previewCode = document.getElementById('previewCode');
+
+        previewMapContainer.style.display = 'block';
+        previewCode.style.display = 'none';
+
+        previewCode.textContent = "";
+        previewMapContainer.innerHTML = '';
+        previewMapContainer.innerHTML = `
+<div id="newMap" style="max-width:100%; width: 780px; height: 500px; display: block;"></div>
+<div id="figcap">
+    <figure>
+        <figcaption style="display:block;" rows="5" cols="33">${model.mapState.templateMapText}</figcaption>
+    </figure>
+</div>
+`;
+
+        let previewMap = L.map("newMap", {
+            pmIgnore: false,
+            center: [model.liveMap.map.getCenter().lat, model.liveMap.map.getCenter().lng],
+            zoom: model.liveMap.map.getZoom(),
+            gestureHandling: true, //Removing all interactivitiy so the user can view the map as it is before it is interacted with.
+            dragging: false,
+            touchZoom: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            zoomControl: false
+        });
+        L.tileLayer(model.mapState.activeLayer.url, model.mapState.activeLayer.options).addTo(previewMap);
+
+        model.mapState.featureCollections.features.forEach((feature) => {
+            if (feature.geometry.type === 'Point' && feature.properties.radius) {
+                L.circle([feature.geometry.coordinates[1], feature.geometry.coordinates[0]], {
+                    color: 'red', radius: feature.properties.radius
+                }).addTo(previewMap);
+                // } else if (feature.geometry.type === 'Point' && feature.properties.text) {
+                //     L.marker([feature.geometry.coordinates[1], feature.geometry.coordinates[0]], {
+                //         textMarker: true,
+                //         text: feature.properties.text.text,
+                //     }).addTo(map);
+            } else if (feature.geometry.type === 'Polygon') {
+                let polyCords = [];
+                for (let i = 0; i < feature.geometry.coordinates[0].length; i++) {
+                    polyCords.push([feature.geometry.coordinates[0][i][1], feature.geometry.coordinates[0][i][0]]);
+                }
+                L.polygon(polyCords, {
+                    color: 'red'
+                }).addTo(previewMap);
+            } else if (feature.geometry.type === 'LineString') {
+                let polyCords = [];
+                for (let i = 0; i < feature.geometry.coordinates.length; i++) {
+                    polyCords.push([feature.geometry.coordinates[i][1], feature.geometry.coordinates[i][0]]);
+                }
+                L.polyline(polyCords, {
+                    color: 'red',
+                }).addTo(previewMap);
+            } else {
+                L.geoJSON(feature).addTo(previewMap);
+            }
+        });
+
+    }
+
+    function showPreviewModalCode() {
+        let previewMap = document.getElementById('previewMap');
+        let previewCode = document.getElementById('previewCode');
+        setModelValues();
+        previewMap.style.display = 'none';
+        previewCode.style.display = 'block';
+        previewCode.textContent = setHtmlTemplate();
+    }
+
+    function showModal() {
+        let previewModal = document.getElementById('previewModal');
+        setModelValues();
+
+        previewModal.showModal();
+
+        showPreviewModalMap();
+    }
+
+    function closeModal() {
+        let previewModal = document.getElementById('previewModal');
+        previewModal.close();
+    }
+
+    function generateUniqueId() {
+        function uuidV4() {
+            const uuid = new Array(36);
+            for (let i = 0; i < 36; i++) {
+                uuid[i] = Math.floor(Math.random() * 16);
+            }
+            uuid[14] = 4; // set bits 12-15 of time-high-and-version to 0100
+            uuid[19] = uuid[19] &= ~(1 << 2); // set bit 6 of clock-seq-and-reserved to zero
+            uuid[19] = uuid[19] |= (1 << 3); // set bit 7 of clock-seq-and-reserved to one
+            uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+            return uuid.map((x) => x.toString(16)).join('');
+        }
+
+        // return uuidv4();
+    }
+
+    function addFeatureToPreviewMap(feature, geoFeature) {
+        removeFeatureFromPreviewMap(feature.layer.feature.properties.id);
+        model.mapState.featureCollections.features.push(geoFeature);
+    }
+
+    function removeFeatureFromPreviewMap(featureId) {
+        model.mapState.featureCollections.features.forEach((feature, index) => {
+            if (feature.properties.id === featureId) {
+                model.mapState.featureCollections.features.splice(index, 1);
+            }
+        })
+    }
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+        let map = initializeMap();
+        attachEventListeners(map);
+    })
+
+
+    function attachEventListeners(map) {
+        map.on('baselayerchange', function (e) {
+            model.mapState.layer = e.layer;
+            model.mapState.activeLayer.url = e.layer._url;
+            model.mapState.activeLayer.options = e.layer.options;
+            model.previewMap.activeLayer.url = e.layer.url;
+            model.previewMap.activeLayer.options = e.layer.options;
+        });
+
+        document.getElementById('previewModalMapCode').addEventListener('click', showModal);
+        document.getElementById('previewModalCloseBtn').addEventListener('click', closeModal);
+        document.getElementById('btnMap').addEventListener('click', showPreviewModalMap);
+        document.getElementById('btnCode').addEventListener('click', showPreviewModalCode);
+        document.getElementById('copyHtmlBtn').addEventListener('click', copyHTML);
+        document.getElementById('copyHtmlBtnPreview').addEventListener('click', copyHTML);
+        document.getElementById('mapText').addEventListener('input', updateFigCaption);
+
+        model.liveMap.map.on("pm:create", (e) => {
+            const layer = e.layer;
+
+            layer.feature = layer.feature || {type: 'Feature', properties: {}};
+            layer.feature.properties.id = generateUniqueId();
+
+            let geoJSON = layer.toGeoJSON();
+
+            if (e.shape === "Circle") {
+                geoJSON.properties.radius = layer.getRadius();
+            }
+            if (e.shape === "Text") {
+                geoJSON.properties.text = e.layer.options;
+                //feature.properties.text.layer.options
+            }
+
+            model.mapState.featureCollections.features.push(geoJSON);
+
+            layer.on('pm:edit', (e) => {
+                let newGeoJSON = e.layer.toGeoJSON()
+                removeFeatureFromPreviewMap(e.layer.feature.properties.id);
+                addFeatureToPreviewMap(e, newGeoJSON)
+            });
+
+            layer.on('pm:remove', (e) => {
+                if (e.layer.shape === "Circle")
+                    removeFeatureFromPreviewMap(e.layer.feature.properties.id);
+                else if (e.layer.shape === "Rectangle")
+                    removeFeatureFromPreviewMap(e.layer.feature.properties.id);
+                removeFeatureFromPreviewMap(e.layer.feature.properties.id);
+            });
+        });
+
+        model.liveMap.map.on("pm:textchange", (e) => {
+            console.log("pm:textchange: ", e);
+        })
+    }
+
+</script>
+</body>
+</html>
